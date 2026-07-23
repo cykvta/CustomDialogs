@@ -1,0 +1,29 @@
+# id: example/dialog/responses
+# A "response" menu: the player clicks an option and a message appears in chat.
+# after-action: none keeps the screen open so they can pick another option.
+# Great as an NPC dialogue (bind it to a Citizens NPC with /customdialogs npc).
+
+title: "&a&lVillager"
+external-title: "&aVillager"
+can-close-with-escape: true
+type: multi_action
+columns: 1
+after-action: none
+body:
+  - "&7Hello, %player_name%! How can I help you?"
+buttons:
+  - label: "&fWhere is the shop?"
+    width: 220
+    messages:
+      - "&a[Villager] &7The shop is just north of the fountain."
+      - "&8(follow the stone path)"
+
+  - label: "&fTell me about the server"
+    width: 220
+    message: "&a[Villager] &7Welcome to the server! Have fun and be kind."
+
+  - label: "&fGoodbye"
+    width: 220
+    actions:
+      - "[message] &a[Villager] &7See you around!"
+      - "[close]"

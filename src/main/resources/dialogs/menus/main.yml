@@ -1,0 +1,37 @@
+# id: menus/main
+# A multi_action grid demonstrating actions, dialog navigation and permissions.
+
+title: "&d&lMain Menu"
+external-title: "&dMenu"
+can-close-with-escape: true
+type: multi_action
+columns: 2
+body:
+  - "&7Welcome, &f%player_name%&7. Pick an option below."
+buttons:
+  - label: "&bProfile"
+    tooltip: "Open your profile"
+    width: 150
+    actions:
+      - "[dialog] example/dialog/simple"    # open another dialog
+
+  - label: "&bTeleport"
+    tooltip: "Go to spawn"
+    width: 150
+    actions:
+      - "spawn"                             # run /spawn as the player
+      - "[close]"
+
+  - label: "&eDaily reward"
+    tooltip: "Claim your daily reward"
+    width: 150
+    actions:
+      - "[console] give %player_name% diamond 1"
+      - "[message] &aYou claimed a diamond!"
+
+  - label: "&cAdmin panel"
+    tooltip: "Staff only"
+    width: 150
+    permission: "customdialogs.menu.admin"  # hidden from players without it
+    actions:
+      - "[dialog] example/dialog/confirm"

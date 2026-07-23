@@ -1,0 +1,12 @@
+name: CustomDialogs
+version: '${project.version}'
+main: icu.cykuta.customdialogs.CustomDialogs
+api-version: '1.21'
+author: cykuta
+# Optional integrations (softdepend ensures they load before us):
+#   PlaceholderAPI -> %placeholders% in titles, body and buttons, resolved per-player.
+#   Citizens       -> the "customdialog" NPC trait: right-click an NPC to open a dialog.
+softdepend: [PlaceholderAPI, Citizens]
+description: Config-driven custom dialogs built on the Paper Dialog (custom screen) API.
+# Commands are registered at runtime through CykutaAPI's CommandRegistry,
+# so they are intentionally NOT declared here.

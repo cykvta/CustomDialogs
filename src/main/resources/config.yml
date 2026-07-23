@@ -1,0 +1,9 @@
+# ===========================================================
+#  CustomDialogs - main settings
+# ===========================================================
+
+# Prefix used in plugin chat messages. Supports & color codes and #rrggbb hex.
+prefix: "&8[&bCustomDialogs&8] "
+
+# Check GitHub for newer versions on startup.
+update-check: true

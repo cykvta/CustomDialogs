@@ -1,0 +1,20 @@
+# id: example/dialog/confirm
+# A confirmation dialog needs exactly two buttons (yes, no).
+
+title: "&e&lTeleport to spawn?"
+can-close-with-escape: true
+type: confirmation
+body:
+  - "&7Do you want to teleport to spawn?"
+buttons:
+  - label: "&aYes"
+    tooltip: "Teleport now"
+    width: 120
+    actions:
+      - "[message] &aTeleporting..."
+      - "spawn"                 # runs /spawn as the player
+  - label: "&cNo"
+    tooltip: "Cancel"
+    width: 120
+    actions:
+      - "[close]"

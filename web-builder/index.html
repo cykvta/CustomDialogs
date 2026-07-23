@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CustomDialogs Builder</title>
+  <meta name="description" content="Build CustomDialogs dialog files visually and download the ready-to-use .yml." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128172;</text></svg>" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand__mark" aria-hidden="true">&#9632;</span>
+      <div class="brand__text">
+        <span class="brand__name">CustomDialogs <b>Builder</b></span>
+        <span class="brand__sub">Design a dialog, download the <code>.yml</code>, drop it in <code>dialogs/</code>.</span>
+      </div>
+    </div>
+    <div class="topbar__actions">
+      <button id="btn-example" class="btn btn--ghost" type="button">Load example</button>
+      <button id="btn-reset" class="btn btn--ghost" type="button">New</button>
+      <button id="btn-copy" class="btn btn--ghost" type="button">Copy YAML</button>
+      <button id="btn-download" class="btn btn--ghost" type="button">Download .yml</button>
+      <button id="btn-save" class="btn btn--save" type="button" hidden>Save to folder</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <!-- ================= EXPLORER ================= -->
+    <aside class="explorer" aria-label="Dialogs">
+      <div class="card explorer__card">
+        <div class="explorer__head">
+          <h2 class="card__title">Dialogs</h2>
+          <button id="ex-refresh" class="icon-btn" type="button" title="Rescan folder" hidden>&#8635;</button>
+        </div>
+        <button id="ex-open" class="btn btn--small btn--block" type="button">Open dialogs folder&hellip;</button>
+        <div id="ex-folder" class="explorer__folder" hidden></div>
+        <div id="ex-tree" class="tree" role="tree"></div>
+        <p id="ex-hint" class="explorer__hint"></p>
+      </div>
+    </aside>
+
+    <!-- ================= EDITOR ================= -->
+    <section class="editor" aria-label="Editor">
+      <div class="card">
+        <h2 class="card__title">Dialog</h2>
+
+        <label class="field">
+          <span class="field__label">Id / path</span>
+          <input id="f-id" class="input" type="text" placeholder="menus/main" spellcheck="false" />
+          <span class="field__hint" id="path-hint">File name is the last part of the id.</span>
+        </label>
+
+        <label class="field">
+          <span class="field__label">Title</span>
+          <input id="f-title" class="input" type="text" placeholder="&d&lMain Menu" spellcheck="false" />
+        </label>
+
+        <label class="field">
+          <span class="field__label">External title <em>(pause-menu button, optional)</em></span>
+          <input id="f-external" class="input" type="text" placeholder="&dMenu" spellcheck="false" />
+        </label>
+
+        <div class="grid-3">
+          <label class="field">
+            <span class="field__label">Type</span>
+            <select id="f-type" class="input">
+              <option value="multi_action">multi_action</option>
+              <option value="notice">notice</option>
+              <option value="confirmation">confirmation</option>
+            </select>
+          </label>
+          <label class="field" id="columns-field">
+            <span class="field__label">Columns</span>
+            <input id="f-columns" class="input" type="number" min="1" max="8" value="2" />
+          </label>
+          <label class="field">
+            <span class="field__label">After action</span>
+            <select id="f-after" class="input">
+              <option value="close">close</option>
+              <option value="none">none (stay open)</option>
+              <option value="wait">wait</option>
+            </select>
+          </label>
+        </div>
+
+        <p class="type-note" id="type-note"></p>
+
+        <div class="toggles">
+          <label class="check"><input id="f-escape" type="checkbox" checked /> Close with ESC</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head">
+          <h2 class="card__title">Body</h2>
+          <button id="add-line" class="btn btn--small" type="button">+ Line</button>
+        </div>
+        <div id="body-list" class="list"></div>
+        <p class="empty" id="body-empty">No lines yet. The body is the text shown inside the screen.</p>
+      </div>
+
+      <div class="card">
+        <div class="card__head">
+          <h2 class="card__title">Buttons</h2>
+          <button id="add-button" class="btn btn--small" type="button">+ Button</button>
+        </div>
+        <div id="button-list" class="buttons"></div>
+        <p class="empty" id="button-empty">No buttons yet. Buttons run actions when clicked.</p>
+      </div>
+    </section>
+
+    <!-- ================= PREVIEW ================= -->
+    <aside class="preview" aria-label="Preview">
+      <div class="preview__sticky">
+        <div class="mc-screen" id="mc-preview">
+          <!-- rendered dialog -->
+        </div>
+
+        <div class="yaml">
+          <div class="yaml__head">
+            <span class="yaml__label" id="yaml-filename">dialog.yml</span>
+            <span class="yaml__path" id="yaml-path"></span>
+          </div>
+          <pre id="yaml-out" class="yaml__code"></pre>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Templates -->
+  <template id="tpl-body-line">
+    <div class="row">
+      <span class="row__grip" aria-hidden="true">&#8801;</span>
+      <input class="input row__input js-line" type="text" placeholder="&7A line of text" spellcheck="false" />
+      <button class="icon-btn js-up" type="button" title="Move up">&#9650;</button>
+      <button class="icon-btn js-down" type="button" title="Move down">&#9660;</button>
+      <button class="icon-btn icon-btn--danger js-del" type="button" title="Remove">&#215;</button>
+    </div>
+  </template>
+
+  <template id="tpl-button">
+    <div class="btn-card">
+      <div class="btn-card__head">
+        <span class="btn-card__badge js-badge">Button</span>
+        <div class="btn-card__head-actions">
+          <button class="icon-btn js-bup" type="button" title="Move up">&#9650;</button>
+          <button class="icon-btn js-bdown" type="button" title="Move down">&#9660;</button>
+          <button class="icon-btn icon-btn--danger js-bdel" type="button" title="Remove button">&#215;</button>
+        </div>
+      </div>
+      <div class="grid-2">
+        <label class="field">
+          <span class="field__label">Label</span>
+          <input class="input js-label" type="text" placeholder="&aContinue" spellcheck="false" />
+        </label>
+        <label class="field">
+          <span class="field__label">Tooltip <em>(optional)</em></span>
+          <input class="input js-tooltip" type="text" placeholder="Hover text" spellcheck="false" />
+        </label>
+      </div>
+      <div class="grid-2">
+        <label class="field">
+          <span class="field__label">Width</span>
+          <input class="input js-width" type="number" min="1" max="1024" value="150" />
+        </label>
+        <label class="field">
+          <span class="field__label">Permission <em>(optional)</em></span>
+          <input class="input js-perm" type="text" placeholder="server.menu.admin" spellcheck="false" />
+        </label>
+      </div>
+      <div class="actions-block">
+        <div class="actions-block__head">
+          <span class="field__label">On click</span>
+          <button class="btn btn--small js-add-action" type="button">+ Action</button>
+        </div>
+        <div class="js-actions action-list"></div>
+        <p class="empty js-actions-empty">No actions &rarr; clicking just closes the screen.</p>
+      </div>
+    </div>
+  </template>
+
+  <template id="tpl-action">
+    <div class="action-row">
+      <select class="input action-row__type js-atype"></select>
+      <input class="input action-row__value js-avalue" type="text" spellcheck="false" />
+      <button class="icon-btn icon-btn--danger js-adel" type="button" title="Remove action">&#215;</button>
+    </div>
+  </template>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

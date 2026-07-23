@@ -1,0 +1,56 @@
+# One dialog per file. The dialog id is the path under /dialogs without ".yml".
+# This file  ->  id:  example/dialog/simple
+# Open with:  /customdialogs open example/dialog/simple
+#
+# Fields:
+#   title                 -> Title shown at the top of the screen.
+#   external-title        -> (optional) Short title on the pause-menu button.
+#   can-close-with-escape -> Whether ESC closes the screen. Default: true
+#   type                  -> multi_action (default) | notice | confirmation
+#                            multi_action = grid of any number of buttons.
+#                            notice = one centered button. confirmation = yes/no.
+#   columns               -> (multi_action only) buttons per row. Default: 2
+#   after-action          -> close | none | wait   What the screen does after a
+#                            button is clicked. Default: close. Use "none" for
+#                            menus that should stay open (e.g. run a command and
+#                            keep the menu on screen).
+#   body                  -> List of text lines shown in the body. Supports
+#                            PlaceholderAPI %placeholders%.
+#   buttons               -> List of buttons.
+#       label      -> button text (supports %placeholders%)
+#       tooltip    -> (optional) hover text
+#       width      -> (optional) 1..1024, default 150
+#       permission -> (optional) players without it don't see the button
+#       actions    -> (optional) list run in order on click. Each line is:
+#                       [player]  <cmd>   run <cmd> as the clicking player (default)
+#                       [console] <cmd>   run <cmd> from the console
+#                       [op]      <cmd>   run <cmd> as player, op'd for that command
+#                       [dialog]  <id>    open another dialog
+#                       [close]           close this screen
+#                       [message] <text>  send a message to the player
+#                       [broadcast] <text> broadcast to everyone
+#                     A line with no [tag] runs as a player command.
+#       message    -> (optional) a single chat line sent to the clicking player
+#                     (a "response"). Shorthand for a [message] action.
+#       messages   -> (optional) a list of chat lines sent to the clicking player.
+#       command    -> (optional) shorthand for a single [player] command
+#
+# Tip: for a response menu that stays open after each click, set
+#      "after-action: none" so the screen isn't closed when a button is used.
+
+title: "&b&lWelcome, %player_name%!"
+external-title: "&bWelcome"
+can-close-with-escape: true
+type: notice
+body:
+  - "&7Welcome to the server!"
+  - ""
+  - "&7This screen was built with the new"
+  - "&7Minecraft custom screen (Dialog) system."
+buttons:
+  - label: "&aContinue"
+    tooltip: "Close this screen"
+    width: 150
+    actions:
+      - "[message] &aWelcome aboard, %player_name%!"
+      - "[close]"
