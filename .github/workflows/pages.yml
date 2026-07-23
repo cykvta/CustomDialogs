@@ -29,6 +29,10 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
+        with:
+          # Auto-enable Pages (source: GitHub Actions) if it isn't already,
+          # so no manual Settings -> Pages step is needed.
+          enablement: true
 
       - name: Upload web-builder as the site
         uses: actions/upload-pages-artifact@v3
