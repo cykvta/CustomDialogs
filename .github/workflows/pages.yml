@@ -3,7 +3,7 @@ name: Deploy web builder to Pages
 # Publishes the static dialog builder in web-builder/ to GitHub Pages.
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - "web-builder/**"
       - ".github/workflows/pages.yml"
