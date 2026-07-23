@@ -1,0 +1,47 @@
+name: Deploy web builder to Pages
+
+# Publishes the static dialog builder in web-builder/ to GitHub Pages.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web-builder/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+# Permissions needed by the official Pages deploy action.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one Pages deployment at a time; don't cancel an in-progress one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload web-builder as the site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web-builder
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
