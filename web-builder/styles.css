@@ -78,6 +78,7 @@ code { font-family: var(--mono); font-size: .92em; color: var(--accent); }
 }
 .btn:hover { border-color: #414b59; background: #2a303a; }
 .btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .38; cursor: not-allowed; }
 .btn--ghost { background: transparent; }
 .btn--primary {
   background: linear-gradient(180deg, #52c765, var(--accent));
@@ -101,31 +102,54 @@ code { font-family: var(--mono); font-size: .92em; color: var(--accent); }
 .icon-btn:hover { color: var(--text); border-color: #414b59; }
 .icon-btn--danger:hover { color: #fff; background: var(--danger); border-color: var(--danger); }
 
-/* ---------------- Workspace layout ---------------- */
-.workspace {
-  display: grid;
-  grid-template-columns: 244px minmax(0, 1fr) minmax(0, 440px);
-  gap: 20px;
-  padding: 20px;
-  max-width: 1500px; margin: 0 auto;
-  align-items: start;
-}
-@media (max-width: 1200px) {
-  .workspace { grid-template-columns: 224px minmax(0, 1fr); }
-  .preview { grid-column: 1 / -1; }
-}
-@media (max-width: 820px) {
-  .workspace { grid-template-columns: 1fr; }
-  .preview { grid-column: auto; }
-}
+/* ---------------- Full-page stage ---------------- */
+body { display: flex; flex-direction: column; min-height: 100%; }
+.topbar { flex: 0 0 auto; }
 
-.editor { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.stage { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+/* The Drawflow container. No extra class so its classList[0] stays "parent-drawflow"
+   (Drawflow keys background panning off classList[0]). */
+#drawflow {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 1px 1px, rgba(255,255,255,.05) 1px, transparent 0) 0 0 / 22px 22px,
+    var(--bg);
+  overflow: hidden; cursor: grab;
+}
+#drawflow:active { cursor: grabbing; }
+
+/* Floating panels over the canvas */
+.panel {
+  position: absolute; top: 16px; z-index: 10;
+  width: 260px; max-height: calc(100% - 32px);
+  display: flex; flex-direction: column;
+  background: rgba(30, 34, 42, .96);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: 0 14px 40px rgba(0,0,0,.5); backdrop-filter: blur(4px);
+}
+.panel--left { left: 16px; }
+.panel--right { right: 16px; width: 380px; }
+.panel__head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 10px 12px; border-bottom: 1px solid var(--line); flex: 0 0 auto;
+}
+.panel__title { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--faint); }
+.panel__head-actions { display: flex; gap: 6px; }
+.panel__body { padding: 12px; overflow: auto; }
+.panel.collapsed { display: none; }
+
+.panel-reopen {
+  position: absolute; top: 16px; z-index: 10;
+  font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+  writing-mode: vertical-rl; padding: 12px 6px;
+  background: var(--panel); color: var(--muted);
+  border: 1px solid var(--line); border-radius: var(--radius);
+}
+.panel-reopen:hover { color: var(--text); border-color: var(--accent); }
+.panel-reopen--left { left: 16px; }
+.panel-reopen--right { right: 16px; }
 
 /* ---------------- Explorer ---------------- */
-.explorer { min-width: 0; }
-.explorer__card { position: sticky; top: 84px; }
-.explorer__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.explorer__head .card__title { margin: 0; }
 .explorer__folder {
   margin-top: 10px; font-family: var(--mono); font-size: 12px; color: var(--gold);
   display: flex; align-items: center; gap: 6px; word-break: break-all;
@@ -133,7 +157,7 @@ code { font-family: var(--mono); font-size: .92em; color: var(--accent); }
 .explorer__folder::before { content: "\1F4C1"; }
 .explorer__hint { color: var(--faint); font-size: 11.5px; margin: 10px 2px 0; }
 
-.tree { margin-top: 8px; max-height: 62vh; overflow: auto; }
+.tree { margin-top: 8px; max-height: 46vh; overflow: auto; }
 .tree__group { list-style: none; margin: 0; padding: 0; }
 .tree__group .tree__group { margin-left: 12px; border-left: 1px solid var(--line-soft); padding-left: 4px; }
 .tree__folder, .tree__file {
@@ -229,6 +253,24 @@ select.input { appearance: none; cursor: pointer; }
 }
 .btn-card__head-actions { display: flex; gap: 6px; }
 
+/* ---------------- Conversation steps ---------------- */
+.steps { display: flex; flex-direction: column; gap: 14px; }
+.step-card { border-left: 3px solid var(--gold); }
+.response-list { display: flex; flex-direction: column; gap: 12px; }
+.response-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+.response-card__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.response-card__badge {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase;
+  color: var(--gold); background: rgba(240,180,41,.12);
+  padding: 3px 9px; border-radius: 999px;
+}
+
 /* ---------------- Actions block ---------------- */
 .actions-block { margin-top: 6px; border-top: 1px dashed var(--line); padding-top: 12px; }
 .actions-block__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
@@ -237,6 +279,110 @@ select.input { appearance: none; cursor: pointer; }
 .action-row__type { cursor: pointer; }
 .action-row--novalue .action-row__value { visibility: hidden; }
 @media (max-width: 520px) { .action-row { grid-template-columns: 1fr auto; } .action-row__type { grid-column: 1 / -1; } }
+
+/* ============================================================
+   NODE EDITOR (Drawflow)
+   ============================================================ */
+.canvas-toolbar {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 7px 9px;
+}
+.canvas-toolbar.float {
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%); z-index: 11;
+  box-shadow: 0 10px 30px rgba(0,0,0,.45);
+}
+.canvas-toolbar__group { display: flex; align-items: center; gap: 8px; }
+
+/* Reset Drawflow's default node chrome — our .nd panel provides the box. */
+.drawflow .drawflow-node {
+  background: transparent; border: 0; padding: 0; width: auto; color: var(--text);
+  align-items: stretch; border-radius: var(--radius-sm); box-shadow: 0 8px 24px rgba(0,0,0,.35);
+}
+.drawflow .drawflow-node.selected .nd { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(63,185,80,.35); }
+
+/* Ports */
+.drawflow .drawflow-node .input,
+.drawflow .drawflow-node .output {
+  width: 14px; height: 14px; border: 2px solid var(--line); background: var(--panel-2);
+  border-radius: 50%; cursor: crosshair;
+}
+.drawflow .drawflow-node .output { background: var(--accent); border-color: #2f9a41; }
+.drawflow .drawflow-node .input:hover,
+.drawflow .drawflow-node .output:hover { border-color: var(--accent); }
+.drawflow .connection .main-path { stroke: #4a5566; stroke-width: 2.5px; }
+.drawflow .connection .main-path:hover { stroke: var(--accent); }
+.drawflow-delete {
+  background: var(--danger); border: 2px solid #fff; color: #fff; border-radius: 50%;
+  width: 20px; height: 20px; line-height: 16px;
+}
+
+/* Node body (our content) */
+.nd {
+  width: 300px; background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius-sm); padding: 12px; font-size: 12.5px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.nd--button { width: 280px; border-left: 3px solid #55aaff; }
+.nd--step { width: 280px; border-left: 3px solid var(--gold); }
+.nd--response { width: 280px; border-left: 3px solid var(--accent); }
+.nd--dialog { border-left: 3px solid #b06bff; }
+.nd--input { width: 290px; border-left: 3px solid #e0728f; }
+
+/* Input node: show only the field group for the selected type. */
+.nd .ig { display: none; flex-direction: column; gap: 8px;
+  border-top: 1px dashed var(--line); padding-top: 8px; }
+.nd--it-text .ig-text,
+.nd--it-bool .ig-bool,
+.nd--it-number .ig-number,
+.nd--it-option .ig-option { display: flex; }
+.nd-orow { display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 6px; align-items: center; }
+.nd-odef { display: grid; place-items: center; }
+.nd-odef input { accent-color: var(--accent); width: 15px; height: 15px; }
+.nd__title {
+  font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--faint); display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.nd__type-badge { color: var(--accent); font-weight: 700; letter-spacing: .5px; }
+.nd__goto-hint { color: var(--faint); font-weight: 500; letter-spacing: .3px; text-transform: none; font-size: 10px; }
+.nd__f { display: flex; flex-direction: column; gap: 4px; }
+.nd__row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.nd__lbl { font-size: 10.5px; color: var(--muted); font-weight: 600; }
+.nd__hint { font-size: 10.5px; color: var(--faint); }
+.nd__hint code, .nd__lbl code { color: var(--gold); }
+.nd .nd-i, .nd-line, .nd-aval, .nd-atype, .nd-oid, .nd-odisp {
+  font: inherit; font-size: 12px; width: 100%; padding: 6px 8px;
+  color: var(--text); background: var(--bg-2); border: 1px solid var(--line);
+  border-radius: 5px; outline: none;
+}
+.nd .nd-i:focus, .nd-line:focus, .nd-aval:focus, .nd-atype:focus, .nd-oid:focus, .nd-odisp:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 2px rgba(63,185,80,.15);
+}
+.nd select.nd-i, .nd-atype { appearance: none; cursor: pointer; }
+.nd__chk { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--muted); cursor: pointer; }
+.nd__chk input { accent-color: var(--accent); width: 15px; height: 15px; }
+.nd-colwrap, .nd-conv { display: none; }
+.nd--hascols .nd-colwrap { display: flex; }
+.nd--isconv .nd-conv { display: flex; flex-direction: column; gap: 8px;
+  border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line); padding: 8px 0; }
+
+.nd__list-h { display: flex; align-items: center; justify-content: space-between; margin-top: 2px; }
+.nd__list-h > span { font-size: 10.5px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .6px; }
+.nd-mini {
+  font: inherit; font-size: 11px; cursor: pointer; padding: 3px 8px; border-radius: 5px;
+  border: 1px solid var(--line); background: var(--panel-2); color: var(--text);
+}
+.nd-mini:hover { border-color: var(--accent); }
+.nd-mini--wide { width: 100%; margin-top: 2px; }
+.nd-body-list, .nd-action-list { display: flex; flex-direction: column; gap: 6px; }
+.nd-row, .nd-arow { display: grid; align-items: center; gap: 6px; }
+.nd-row { grid-template-columns: 1fr auto; }
+.nd-arow { grid-template-columns: 116px 1fr auto; }
+.nd-x {
+  font: inherit; cursor: pointer; line-height: 1; width: 24px; height: 24px;
+  border-radius: 5px; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted);
+}
+.nd-x:hover { color: #fff; background: var(--danger); border-color: var(--danger); }
 
 /* ============================================================
    PREVIEW — Minecraft-flavored screen (the signature)
@@ -276,6 +422,29 @@ select.input { appearance: none; cursor: pointer; }
 }
 .mc-btn:hover { background: linear-gradient(#7f8f7f, #5f6f5f); border-color: #a7c7a7 #3a4a3a #3a4a3a #a7c7a7; }
 .mc-empty { color: var(--faint); font-size: 13px; }
+
+/* Input fields in the preview */
+.mc-inputs { display: flex; flex-direction: column; gap: 9px; width: 100%; margin-top: 4px; }
+.mc-input { text-align: left; }
+.mc-input__label { font-size: 12px; margin-bottom: 3px; text-shadow: 1px 1px 0 rgba(0,0,0,.5); }
+.mc-input__field {
+  background: rgba(0,0,0,.34); border: 1px solid #3a4250; border-radius: 2px;
+  padding: 5px 9px; min-height: 28px; color: #fff;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  text-shadow: 1px 1px 0 rgba(0,0,0,.5);
+}
+.mc-input__text { color: #8b93a0; }
+.mc-input__range { color: #8b93a0; font-size: 11px; }
+.mc-input__bool { display: flex; align-items: center; gap: 7px; color: #c7cdd6; text-shadow: 1px 1px 0 rgba(0,0,0,.5); }
+
+/* Conversation log preview */
+.mc-log {
+  width: 100%; text-align: left;
+  border-top: 1px solid rgba(255,255,255,.08);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  padding: 8px 2px; margin-top: 2px;
+}
+.mc-note { color: var(--faint); font-size: 11px; font-style: italic; margin-top: 2px; }
 
 /* Minecraft text formats used by the color parser */
 .mc-b { font-weight: 800; }

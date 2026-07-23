@@ -1,5 +1,7 @@
 package icu.cykuta.customdialogs.dialog;
 
+import icu.cykuta.customdialogs.dialog.conversation.Conversation;
+import icu.cykuta.customdialogs.dialog.input.DialogInputDef;
 import io.papermc.paper.dialog.Dialog;
 import io.papermc.paper.registry.data.dialog.DialogBase;
 
@@ -22,6 +24,8 @@ public final class CustomDialog {
     private final DialogBase.DialogAfterAction afterAction;
     private final List<String> body;
     private final List<DialogButton> buttons;
+    private final List<DialogInputDef> inputs;
+    private final Conversation conversation;
     private final boolean usesPlaceholders;
     private final Dialog dialog;
 
@@ -34,6 +38,8 @@ public final class CustomDialog {
                         DialogBase.DialogAfterAction afterAction,
                         List<String> body,
                         List<DialogButton> buttons,
+                        List<DialogInputDef> inputs,
+                        Conversation conversation,
                         boolean usesPlaceholders,
                         Dialog dialog) {
         this.id = id;
@@ -45,6 +51,8 @@ public final class CustomDialog {
         this.afterAction = afterAction;
         this.body = List.copyOf(body);
         this.buttons = List.copyOf(buttons);
+        this.inputs = inputs == null ? List.of() : List.copyOf(inputs);
+        this.conversation = conversation;
         this.usesPlaceholders = usesPlaceholders;
         this.dialog = dialog;
     }
@@ -86,6 +94,19 @@ public final class CustomDialog {
         return buttons;
     }
 
+    /** The form inputs shown on this dialog (may be empty). */
+    public List<DialogInputDef> inputs() {
+        return inputs;
+    }
+
+    /**
+     * The conversation definition when {@link #kind()} is
+     * {@link DialogKind#CONVERSATION}, otherwise {@code null}.
+     */
+    public Conversation conversation() {
+        return conversation;
+    }
+
     /**
      * Whether any text in this dialog contains a {@code %}, i.e. it may hold a
      * PlaceholderAPI placeholder and must be rebuilt per-player when shown.
@@ -110,7 +131,8 @@ public final class CustomDialog {
     /**
      * The pre-built Paper dialog with no placeholder resolution. Shown as-is when
      * the dialog has no placeholders (or PAPI is absent); otherwise a per-player
-     * copy is built at open time.
+     * copy is built at open time. {@code null} for {@link DialogKind#CONVERSATION}
+     * dialogs, which are assembled step by step by the conversation manager.
      */
     public Dialog dialog() {
         return dialog;

@@ -1,0 +1,91 @@
+# id: example/dialog/conversation
+# A "conversation" dialog: the body grows into a chat-like log as the player picks
+# responses. Great for NPC dialogue (bind it to a Citizens NPC with
+#   /customdialogs npc example/dialog/conversation ).
+# Open with:  /customdialogs open example/dialog/conversation
+#
+# How it works:
+#   Each step is one NPC line. When a step opens, its line is added to the log.
+#   The player's responses become buttons; clicking one adds the player's line to
+#   the log, then moves on (to "goto", or the next step in the list). When there
+#   is no next step the conversation ends and the screen closes.
+#
+# The player name, the NPC/player line formats and the visible-history limit are
+# GLOBAL settings shared by every conversation — see the "conversation" section in
+# config.yml, not here.
+#
+# Per-dialog conversation fields:
+#   columns       -> (optional) response buttons per row. Default: 1.
+#   end-label     -> (optional) label for the auto close button on a step that
+#                    has no responses. Default: "&7Close".
+#   body          -> (optional) intro lines shown above the log.
+#   steps         -> the conversation. Each step:
+#       id         -> (optional) name, used as a "goto" target
+#       speaker    -> the NPC name for this line ({name})
+#       text       -> the NPC line ({message})
+#       responses  -> the player's options (buttons):
+#           label   -> button text
+#           say     -> (optional) the player's logged line. Defaults to the label.
+#                      Use say: "" to advance without adding a player line.
+#           goto     -> (optional) id of the step to jump to. Defaults to the next.
+#           tooltip  -> (optional) hover text
+#           width    -> (optional) 1..1024, default 200
+#           actions  -> (optional) same [tag] actions as normal buttons
+#                       (e.g. "[console] give %player_name% bread 1")
+
+title: "&6&lVillager"
+external-title: "&6Villager"
+can-close-with-escape: true
+type: conversation
+columns: 1
+
+body:
+  - "&8» You strike up a conversation."
+  - ""
+
+steps:
+  - id: start
+    speaker: "Villager"
+    text: "Hello there, {player}! What brings you here?"
+    responses:
+      - label: "&aJust exploring."
+        say: "Just exploring the area."
+        goto: friendly
+      - label: "&eGot any work?"
+        say: "Do you have any work for me?"
+        goto: work
+      - label: "&cNone of your business."
+        say: "None of your business."
+        goto: rude
+
+  - id: friendly
+    speaker: "Villager"
+    text: "Wonderful! Feel free to look around. Take this for the road."
+    responses:
+      - label: "&aThank you!"
+        say: "Thanks!"
+        actions:
+          - "[console] give %player_name% bread 3"
+          - "[close]"
+
+  - id: work
+    speaker: "Villager"
+    text: "As a matter of fact, the fields need tending. Interested?"
+    responses:
+      - label: "&aI'll help."
+        say: "Sure, I'll help."
+        goto: friendly
+      - label: "&7Maybe later."
+        say: "Maybe later."
+        goto: goodbye
+
+  - id: rude
+    speaker: "Villager"
+    text: "...well then. Good day to you."
+
+  - id: goodbye
+    speaker: "Villager"
+    text: "Safe travels, {player}."
+    responses:
+      - label: "&7Goodbye"
+        say: "Goodbye."

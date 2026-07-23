@@ -21,9 +21,9 @@ public final class CommandReload extends BaseCommand {
         try {
             plugin.configs().reloadAll();
             plugin.dialogs().loadAll();
-            plugin.message(sender, "&aReloaded &f" + plugin.dialogs().count() + "&a dialog(s).");
+            plugin.send(sender, "reload.success", "count", String.valueOf(plugin.dialogs().count()));
         } catch (Exception e) {
-            plugin.message(sender, "&cReload failed: " + e.getMessage());
+            plugin.send(sender, "reload.failed", "error", String.valueOf(e.getMessage()));
             plugin.getLogger().warning("Reload failed: " + e.getMessage());
         }
         return true;
@@ -31,6 +31,6 @@ public final class CommandReload extends BaseCommand {
 
     @Override
     protected void onNoPermission(CommandSender sender) {
-        plugin.message(sender, "&cYou don't have permission to reload CustomDialogs.");
+        plugin.send(sender, "no-permission.reload");
     }
 }

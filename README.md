@@ -75,6 +75,115 @@ Open it with `/customdialogs open example/dialog/simple`.
 
 Colors use `&` codes and `#rrggbb` hex.
 
+## Inputs (form fields)
+
+A dialog can show **form inputs** the player fills in before clicking a button.
+Button actions read a field's value with the `{key}` token. Four types:
+
+```yaml
+type: multi_action
+inputs:
+  - type: single_option           # a dropdown
+    key: item
+    label: "&7Item"
+    options:
+      - { id: diamond, display: "&bDiamond", default: true }
+      - { id: bread,   display: "&eBread" }
+  - type: number_range            # a slider
+    key: amount
+    label: "&7Amount"
+    start: 1
+    end: 64
+    step: 1
+    initial: 16
+  - type: bool                    # a toggle
+    key: announce
+    label: "&7Announce it"
+    on-true: "yes"                # value used for {announce} when checked
+    on-false: "no"
+  - type: text                    # a text field
+    key: note
+    label: "&7Note"
+    max-length: 48
+buttons:
+  - label: "&aGive"
+    actions:
+      - "[console] give %player_name% {item} {amount}"
+      - "[message] &aGave &f{amount}x {item}&7 ({note})"
+```
+
+`{key}` tokens are replaced with what the player entered, **before** PlaceholderAPI
+runs, so inputs and `%placeholders%` can be mixed. Booleans substitute their
+`on-true` / `on-false` text (default `true` / `false`); single-options substitute
+the selected `id`; numbers drop a trailing `.0`. See
+`dialogs/example/dialog/inputs.yml`. Inputs attach to normal dialogs
+(`multi_action` / `notice` / `confirmation`).
+
+## Conversations
+
+`type: conversation` turns a dialog into a running dialogue whose **body grows
+into a chat-like log** as the player picks responses:
+
+```
+Villager: Hello there, Steve! What brings you here?
+Steve: Just exploring the area.
+Villager: Wonderful! Take this for the road.
+```
+
+Each **step** is one NPC line plus the player's **responses** (buttons). Clicking
+a response adds the player's line to the log, runs any actions, then advances to
+the next step — or a named step via `goto`, for branching. When there is no next
+step the conversation ends and the screen closes. Progress is tracked per player
+and cleared on quit.
+
+```yaml
+type: conversation
+columns: 1
+player-name: "%player_name%"        # name shown for the player; defaults to the real name
+npc-format: "&6{name}&7: &f{message}"
+player-format: "&b{name}&7: &7{message}"
+body:                               # optional intro shown above the log
+  - "&8» You strike up a conversation."
+steps:
+  - id: start                       # optional; a goto target
+    speaker: "Villager"
+    text: "Hello there, {player}! What brings you here?"
+    responses:
+      - label: "&aJust exploring."
+        say: "Just exploring the area."   # logged as the player's line; defaults to the label
+        goto: friendly                    # optional; defaults to the next step
+      - label: "&eGot any work?"
+        goto: work
+  - id: friendly
+    speaker: "Villager"
+    text: "Wonderful! Take this for the road."
+    responses:
+      - label: "&aThank you!"
+        actions:
+          - "[console] give %player_name% bread 3"
+          - "[close]"
+```
+
+`{name}`/`{message}` fill the format lines. The **player's name** (`player-name`)
+is configurable and accepts any of: a literal string (e.g. `Jugador`), `{player}`
+(the real Minecraft name, no PlaceholderAPI needed), or a `%placeholder%` such as
+`%player_name%`; leave it blank for the real name. `{player}` also works inside any
+other line. Use `say: ""` for a response that adds no player line. A step with no
+responses shows a single close button (`end-label`).
+See `dialogs/example/dialog/conversation.yml`. Binds nicely to a Citizens NPC:
+`/customdialogs npc example/dialog/conversation`.
+
+How much of the log stays visible (to avoid scrolling) is a **global** setting in
+`config.yml` — `conversation.history` (`none` = keep all, or a number for the last
+N lines), applied to every conversation.
+
+## Messages
+
+Every player-facing message lives in `plugins/CustomDialogs/lang.yml` and can be
+edited freely (colors, wording, translations). `{placeholders}` in curly braces
+(e.g. `{count}`, `{id}`, `{player}`) are filled in by the plugin — keep them.
+The chat prefix stays in `config.yml`. Run `/customdialogs reload` to apply changes.
+
 ## Project layout
 
 ```

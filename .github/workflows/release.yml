@@ -1,0 +1,78 @@
+name: Release on version change
+
+# Runs whenever pom.xml changes on master. It reads the project version and, only if
+# no release exists yet for that version, builds the jar and publishes a release
+# tagged with the version. Bumping <version> in pom.xml is all it takes to ship.
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'pom.xml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Read version from pom.xml
+        id: version
+        run: |
+          version="$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Project version: $version"
+
+      - name: Decide whether to release
+        id: gate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          if [ -z "$version" ]; then
+            echo "Could not read the version; skipping."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          elif [[ "$version" == *-SNAPSHOT ]]; then
+            echo "Version $version is a SNAPSHOT; not releasing. Bump pom.xml to a final version to ship."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          elif gh release view "$version" >/dev/null 2>&1; then
+            echo "Release $version already exists; skipping."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Will release $version."
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build
+        if: steps.gate.outputs.release == 'true'
+        run: mvn -B clean package
+
+      - name: Create release
+        if: steps.gate.outputs.release == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Tag == project.version (no "v" prefix) so it matches the plugin.yml
+          # version the in-game update checker compares against. gh creates the tag
+          # on this commit and marks the release as "latest" by default.
+          gh release create "${{ steps.version.outputs.version }}" \
+            --title "${{ steps.version.outputs.version }}" \
+            --latest \
+            --generate-notes \
+            "target/CustomDialogs-${{ steps.version.outputs.version }}.jar"

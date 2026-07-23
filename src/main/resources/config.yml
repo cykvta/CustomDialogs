@@ -5,5 +5,20 @@
 # Prefix used in plugin chat messages. Supports & color codes and #rrggbb hex.
 prefix: "&8[&bCustomDialogs&8] "
 
-# Check GitHub for newer versions on startup.
+# Check GitHub on startup for a newer release and log a note if one is out.
+# Purely informational (nothing is downloaded). Set to false to disable.
 update-check: true
+
+# Conversation dialogs (type: conversation). These apply to every conversation.
+conversation:
+  # How many log lines stay visible, to avoid scrolling. "none" keeps the whole
+  # conversation; a number keeps only that many most-recent lines.
+  history: none
+
+  # The name shown for the player's lines: a literal (e.g. "Player"), {player}
+  # (the real name, no PlaceholderAPI needed), or a %placeholder%. Blank = real name.
+  player-name: "%player_name%"
+
+  # How each logged line looks. {name} = the speaker, {message} = the line.
+  npc-format: "&6{name}&7: &f{message}"
+  player-format: "&b{name}&7: &7{message}"

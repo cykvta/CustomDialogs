@@ -27,15 +27,15 @@ public final class CommandCustomDialogs extends BaseCommand {
 
     @Override
     protected boolean onCommand(CommandSender sender, String[] args) {
-        plugin.message(sender, "&7Commands:");
-        plugin.message(sender, "&f/customdialogs open <id> [player] &7- open a dialog");
-        plugin.message(sender, "&f/customdialogs list &7- list dialogs");
-        plugin.message(sender, "&f/customdialogs reload &7- reload configs");
+        plugin.send(sender, "help.header");
+        plugin.send(sender, "help.open");
+        plugin.send(sender, "help.list");
+        plugin.send(sender, "help.reload");
         return true;
     }
 
     @Override
     protected void onNoPermission(CommandSender sender) {
-        plugin.message(sender, "&cYou don't have permission to use this command.");
+        plugin.send(sender, "no-permission.command");
     }
 }

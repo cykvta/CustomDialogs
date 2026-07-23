@@ -1,0 +1,95 @@
+# id: example/dialog/inputs
+# Shows the four dialog input types. The player fills in the form, then a button
+# reads the values via {key} tokens and runs actions with them.
+# Open with:  /customdialogs open example/dialog/inputs
+#
+# inputs -> a list of form fields shown on the dialog. Common fields:
+#   type          -> text | bool | single_option | number_range   (default: text)
+#   key           -> the name used to read the value as {key} in button actions
+#   label         -> the shown label (supports colors + %placeholders%)
+#   width         -> (optional) field width in px
+#   label-visible -> (optional) text / single_option: show the label. Default: true
+#
+# text:
+#   initial       -> (optional) starting text
+#   max-length    -> (optional) character limit
+#   multiline     -> (optional) true for a multi-line box
+#   max-lines     -> (optional) multiline row count
+# bool:
+#   initial       -> (optional) true/false starting state
+#   on-true       -> (optional) value substituted when checked   (default: "true")
+#   on-false      -> (optional) value substituted when unchecked (default: "false")
+# single_option:
+#   options       -> list of { id, display, default }  (default: the selected one)
+# number_range:
+#   start / end   -> the slider range (required)
+#   step          -> (optional) increment
+#   initial       -> (optional) starting value
+#   label-format  -> (optional) how the value is shown next to the label
+#
+# Button actions read a field with {key}, e.g. "{amount}" or "{item}".
+
+title: "&b&lGive yourself an item"
+external-title: "&bItem form"
+can-close-with-escape: true
+type: multi_action
+columns: 1
+
+body:
+  - "&7Fill in the form and press &fGive&7."
+  - ""
+
+inputs:
+  - type: single_option
+    key: item
+    label: "&7Item"
+    width: 220
+    options:
+      - id: diamond
+        display: "&bDiamond"
+        default: true
+      - id: golden_apple
+        display: "&6Golden apple"
+      - id: bread
+        display: "&eBread"
+
+  - type: number_range
+    key: amount
+    label: "&7Amount"
+    width: 220
+    start: 1
+    end: 64
+    step: 1
+    initial: 16
+
+  - type: bool
+    key: announce
+    label: "&7Announce it in chat"
+    initial: false
+    on-true: "yes"
+    on-false: "no"
+
+  - type: text
+    key: note
+    label: "&7Note (optional)"
+    width: 220
+    max-length: 48
+    initial: ""
+
+buttons:
+  - label: "&aGive"
+    width: 220
+    actions:
+      - "[console] give %player_name% {item} {amount}"
+      - "[message] &aGave you &f{amount}x {item}&a. Note: &7{note}"
+
+  - label: "&eAnnounce test"
+    width: 220
+    tooltip: "Runs only the announce, to show a bool value"
+    actions:
+      - "[message] &7You chose to announce: &f{announce}"
+
+  - label: "&7Cancel"
+    width: 220
+    actions:
+      - "[close]"

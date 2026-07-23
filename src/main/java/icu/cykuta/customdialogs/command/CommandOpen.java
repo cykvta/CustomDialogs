@@ -24,13 +24,13 @@ public final class CommandOpen extends BaseCommand {
     @Override
     protected boolean onCommand(CommandSender sender, String[] args) {
         if (args.length < 1) {
-            plugin.message(sender, "&cUsage: /customdialogs open <id> [player]");
+            plugin.send(sender, "open.usage");
             return true;
         }
 
         String id = args[0];
         if (!plugin.dialogs().exists(id)) {
-            plugin.message(sender, "&cUnknown dialog: &f" + id);
+            plugin.send(sender, "open.unknown-dialog", "id", id);
             return true;
         }
 
@@ -38,28 +38,28 @@ public final class CommandOpen extends BaseCommand {
         if (args.length >= 2) {
             target = Bukkit.getPlayerExact(args[1]);
             if (target == null) {
-                plugin.message(sender, "&cPlayer not found: &f" + args[1]);
+                plugin.send(sender, "open.player-not-found", "player", args[1]);
                 return true;
             }
         } else if (sender instanceof Player self) {
             target = self;
         } else {
-            plugin.message(sender, "&cFrom console you must specify a player: /customdialogs open " + id + " <player>");
+            plugin.send(sender, "open.console-needs-player", "id", id);
             return true;
         }
 
         plugin.dialogs().open(target, id);
 
         if (target.equals(sender)) {
-            plugin.message(sender, "&aOpened dialog &f" + id + "&a.");
+            plugin.send(sender, "open.self", "id", id);
         } else {
-            plugin.message(sender, "&aOpened dialog &f" + id + "&a for &f" + target.getName() + "&a.");
+            plugin.send(sender, "open.other", "id", id, "player", target.getName());
         }
         return true;
     }
 
     @Override
     protected void onNoPermission(CommandSender sender) {
-        plugin.message(sender, "&cYou don't have permission to open dialogs.");
+        plugin.send(sender, "no-permission.open");
     }
 }

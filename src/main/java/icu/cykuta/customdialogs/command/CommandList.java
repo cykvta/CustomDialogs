@@ -19,16 +19,18 @@ public final class CommandList extends BaseCommand {
     @Override
     protected boolean onCommand(CommandSender sender, String[] args) {
         if (plugin.dialogs().count() == 0) {
-            plugin.message(sender, "&7No dialogs are loaded.");
+            plugin.send(sender, "list.empty");
             return true;
         }
-        plugin.message(sender, "&7Dialogs (&f" + plugin.dialogs().count() + "&7): &f"
-                + String.join("&7, &f", plugin.dialogs().ids()));
+        String separator = plugin.lang("list.separator");
+        plugin.send(sender, "list.header",
+                "count", String.valueOf(plugin.dialogs().count()),
+                "dialogs", String.join(separator, plugin.dialogs().ids()));
         return true;
     }
 
     @Override
     protected void onNoPermission(CommandSender sender) {
-        plugin.message(sender, "&cYou don't have permission to list dialogs.");
+        plugin.send(sender, "no-permission.list");
     }
 }

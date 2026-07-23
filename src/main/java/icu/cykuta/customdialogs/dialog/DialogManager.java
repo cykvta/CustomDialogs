@@ -3,13 +3,21 @@ package icu.cykuta.customdialogs.dialog;
 import icu.cykuta.customdialogs.dialog.action.ActionExecutor;
 import icu.cykuta.customdialogs.dialog.action.ButtonAction;
 import icu.cykuta.customdialogs.dialog.action.ActionType;
+import icu.cykuta.customdialogs.dialog.conversation.Conversation;
+import icu.cykuta.customdialogs.dialog.conversation.ConversationManager;
+import icu.cykuta.customdialogs.dialog.conversation.ConversationResponse;
+import icu.cykuta.customdialogs.dialog.conversation.ConversationStep;
+import icu.cykuta.api.config.ConfigManager;
+import icu.cykuta.customdialogs.dialog.input.DialogInputDef;
 import icu.cykuta.customdialogs.util.Placeholders;
 import icu.cykuta.customdialogs.util.Texts;
 import io.papermc.paper.dialog.Dialog;
+import io.papermc.paper.dialog.DialogResponseView;
 import io.papermc.paper.registry.data.dialog.ActionButton;
 import io.papermc.paper.registry.data.dialog.DialogBase;
 import io.papermc.paper.registry.data.dialog.action.DialogAction;
 import io.papermc.paper.registry.data.dialog.body.DialogBody;
+import io.papermc.paper.registry.data.dialog.input.DialogInput;
 import io.papermc.paper.registry.data.dialog.type.DialogType;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickCallback;
@@ -26,6 +34,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,14 +67,18 @@ public final class DialogManager {
     private static final String EXT = ".yml";
 
     private final JavaPlugin plugin;
+    private final ConfigManager configs;
     private final ActionExecutor actions;
+    private final ConversationManager conversations;
 
     /** id (lowercase) -> loaded dialog. Insertion order preserved for listings. */
     private final Map<String, CustomDialog> dialogs = new LinkedHashMap<>();
 
-    public DialogManager(JavaPlugin plugin) {
+    public DialogManager(JavaPlugin plugin, ConfigManager configs) {
         this.plugin = plugin;
+        this.configs = configs;
         this.actions = new ActionExecutor(plugin, this);
+        this.conversations = new ConversationManager(plugin, this, actions);
     }
 
     /** The on-disk {@code dialogs/} folder inside the plugin's data folder. */
@@ -147,17 +160,111 @@ public final class DialogManager {
         DialogBase.DialogAfterAction afterAction = parseAfterAction(section.getString("after-action"));
         List<String> body = section.getStringList("body");
         List<DialogButton> buttons = parseButtons(section);
+        List<DialogInputDef> inputs = parseInputs(section);
 
-        boolean usesPlaceholders = detectPlaceholders(title, externalTitle, body, buttons);
+        // Conversations are always assembled per-player, step by step, by the
+        // conversation manager; there is no cached Paper dialog to pre-build.
+        if (kind == DialogKind.CONVERSATION) {
+            Conversation conversation = parseConversation(section);
+            return new CustomDialog(id, title, externalTitle, canCloseWithEscape,
+                    kind, columns, afterAction, body, buttons, inputs, conversation, true, null);
+        }
+
+        boolean usesPlaceholders = detectPlaceholders(title, externalTitle, body, buttons, inputs);
 
         // Pre-built dialog with no placeholder resolution and every button shown.
         // Used directly when the dialog has neither placeholders nor permission
         // buttons; otherwise a per-player copy is assembled at open time.
         Dialog dialog = assemble(id, title, externalTitle, kind, columns, afterAction,
-                canCloseWithEscape, body, buttons, UnaryOperator.identity(), b -> true);
+                canCloseWithEscape, body, buttons, inputs, UnaryOperator.identity(), b -> true);
 
         return new CustomDialog(id, title, externalTitle, canCloseWithEscape,
-                kind, columns, afterAction, body, buttons, usesPlaceholders, dialog);
+                kind, columns, afterAction, body, buttons, inputs, null, usesPlaceholders, dialog);
+    }
+
+    /** Reads the optional {@code inputs} list into input definitions. */
+    @SuppressWarnings("unchecked")
+    private List<DialogInputDef> parseInputs(ConfigurationSection section) {
+        List<DialogInputDef> result = new ArrayList<>();
+        for (Map<?, ?> raw : section.getMapList("inputs")) {
+            result.add(DialogInputDef.parse((Map<String, Object>) raw));
+        }
+        return result;
+    }
+
+    /** Parses the {@code conversation}-specific config (formats + steps). */
+    @SuppressWarnings("unchecked")
+    private Conversation parseConversation(ConfigurationSection section) {
+        // Player name, line formats and the history limit are global settings
+        // (config.yml), shared by every conversation — not configured per-dialog.
+        var config = configs.get("config.yml");
+        String playerName = config.getString("conversation.player-name", "%player_name%");
+        String npcFormat = config.getString("conversation.npc-format", "&6{name}&7: &f{message}");
+        String playerFormat = config.getString("conversation.player-format", "&b{name}&7: &7{message}");
+        int history = parseHistory(config.getString("conversation.history", "none"));
+        String endLabel = section.getString("end-label", "&7Close");
+        int columns = Math.max(1, section.getInt("columns", 1)); // conversations default to 1 column
+
+        List<ConversationStep> steps = new ArrayList<>();
+        for (Map<?, ?> raw : section.getMapList("steps")) {
+            Map<String, Object> map = (Map<String, Object>) raw;
+            Object idObj = map.get("id");
+            String stepId = idObj == null ? null : String.valueOf(idObj);
+            String speaker = String.valueOf(map.getOrDefault("speaker", map.getOrDefault("name", "")));
+            String text = String.valueOf(map.getOrDefault("text", map.getOrDefault("message", "")));
+            steps.add(new ConversationStep(stepId, speaker, text, parseResponses(map)));
+        }
+        return new Conversation(playerName, npcFormat, playerFormat, endLabel, history, columns, steps);
+    }
+
+    /**
+     * Parses the {@code history} value: the max number of log lines kept visible.
+     * {@code none} (the default) / {@code 0} / a blank keep the whole log; a positive
+     * number keeps only that many most-recent lines (to avoid scrolling).
+     */
+    private static int parseHistory(String raw) {
+        if (raw == null) {
+            return 0;
+        }
+        String s = raw.trim().toLowerCase();
+        if (s.isEmpty() || s.equals("none") || s.equals("all") || s.equals("infinite")
+                || s.equals("unlimited") || s.equals("off")) {
+            return 0;
+        }
+        try {
+            return Math.max(0, Integer.parseInt(s));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    /** Reads a step's {@code responses} (or {@code buttons}) list into response models. */
+    @SuppressWarnings("unchecked")
+    private List<ConversationResponse> parseResponses(Map<String, Object> stepMap) {
+        List<ConversationResponse> result = new ArrayList<>();
+        Object raw = stepMap.get("responses");
+        if (raw == null) {
+            raw = stepMap.get("buttons"); // accept either key
+        }
+        if (!(raw instanceof List<?> list)) {
+            return result;
+        }
+        for (Object o : list) {
+            if (!(o instanceof Map<?, ?> m)) {
+                continue;
+            }
+            Map<String, Object> map = (Map<String, Object>) m;
+            String label = String.valueOf(map.getOrDefault("label", ""));
+            Object tooltipObj = map.get("tooltip");
+            String tooltip = tooltipObj == null ? null : String.valueOf(tooltipObj);
+            int width = map.get("width") instanceof Number n ? n.intValue() : ConversationResponse.DEFAULT_WIDTH;
+            // "say" defaults to the label; an explicit blank means "no player line".
+            String say = map.containsKey("say") ? String.valueOf(map.get("say")) : label;
+            Object gotoObj = map.get("goto");
+            String target = gotoObj == null ? null : String.valueOf(gotoObj);
+            result.add(new ConversationResponse(label, tooltip, width, say, target, parseActions(map)));
+        }
+        return result;
     }
 
     /**
@@ -169,7 +276,7 @@ public final class DialogManager {
     private Dialog assemble(String id, String title, String externalTitle, DialogKind kind,
                             int columns, DialogBase.DialogAfterAction afterAction,
                             boolean canCloseWithEscape,
-                            List<String> body, List<DialogButton> buttons,
+                            List<String> body, List<DialogButton> buttons, List<DialogInputDef> inputs,
                             UnaryOperator<String> tx, Predicate<DialogButton> visible) {
         // --- Body ---
         List<DialogBody> bodyElements = new ArrayList<>();
@@ -177,12 +284,19 @@ public final class DialogManager {
             bodyElements.add(DialogBody.plainMessage(Texts.toComponent(tx.apply(line))));
         }
 
+        // --- Inputs (form fields) ---
+        List<DialogInput> dialogInputs = new ArrayList<>();
+        for (DialogInputDef input : inputs) {
+            dialogInputs.add(input.toPaperInput(tx));
+        }
+
         // --- Base ---
         DialogBase.Builder baseBuilder = DialogBase.builder(Texts.toComponent(tx.apply(title)))
                 .canCloseWithEscape(canCloseWithEscape)
                 .pause(false) // never pause: this is a server plugin, pausing only affects singleplayer
                 .afterAction(afterAction)
-                .body(bodyElements);
+                .body(bodyElements)
+                .inputs(dialogInputs);
         if (externalTitle != null) {
             baseBuilder.externalTitle(Texts.toComponent(tx.apply(externalTitle)));
         }
@@ -192,7 +306,7 @@ public final class DialogManager {
         List<ActionButton> actionButtons = new ArrayList<>();
         for (DialogButton b : buttons) {
             if (visible.test(b)) {
-                actionButtons.add(toActionButton(b, tx));
+                actionButtons.add(toActionButton(b, tx, inputs));
             }
         }
 
@@ -214,12 +328,13 @@ public final class DialogManager {
         Predicate<DialogButton> visible = b -> !b.hasPermission() || player.hasPermission(b.permission());
         return assemble(def.id(), def.title(), def.externalTitle(), def.kind(), def.columns(),
                 def.afterAction(), def.canCloseWithEscape(),
-                def.body(), def.buttons(), tx, visible);
+                def.body(), def.buttons(), def.inputs(), tx, visible);
     }
 
     /** True if any of the dialog's text carries a {@code %} (a possible placeholder). */
     private static boolean detectPlaceholders(String title, String externalTitle,
-                                              List<String> body, List<DialogButton> buttons) {
+                                              List<String> body, List<DialogButton> buttons,
+                                              List<DialogInputDef> inputs) {
         if (Placeholders.contains(title) || Placeholders.contains(externalTitle)) {
             return true;
         }
@@ -230,6 +345,11 @@ public final class DialogManager {
         }
         for (DialogButton b : buttons) {
             if (Placeholders.contains(b.label()) || Placeholders.contains(b.tooltip())) {
+                return true;
+            }
+        }
+        for (DialogInputDef in : inputs) {
+            if (in.usesPlaceholders()) {
                 return true;
             }
         }
@@ -249,7 +369,9 @@ public final class DialogManager {
                 }
                 yield DialogType.confirmation(buttons.get(0), buttons.get(1));
             }
-            case MULTI_ACTION -> {
+            case MULTI_ACTION, CONVERSATION -> {
+                // CONVERSATION never reaches here (it is assembled by the conversation
+                // manager, not this cached path); handled with multi_action for exhaustiveness.
                 if (buttons.isEmpty()) {
                     plugin.getLogger().warning("Dialog '" + id
                             + "' is a multi_action but has no buttons; falling back to empty notice.");
@@ -260,19 +382,20 @@ public final class DialogManager {
         };
     }
 
-    private ActionButton toActionButton(DialogButton b, UnaryOperator<String> tx) {
+    private ActionButton toActionButton(DialogButton b, UnaryOperator<String> tx, List<DialogInputDef> inputs) {
         Component tooltip = b.tooltip() == null ? null : Texts.toComponent(tx.apply(b.tooltip()));
         int width = Math.max(1, Math.min(1024, b.width()));
-        return ActionButton.create(Texts.toComponent(tx.apply(b.label())), tooltip, width, buildAction(b));
+        return ActionButton.create(Texts.toComponent(tx.apply(b.label())), tooltip, width, buildAction(b, inputs));
     }
 
     /**
      * Turns a button's actions into a Paper {@link DialogAction}, or {@code null}
      * when it has none (in which case clicking only closes the screen). The click
-     * callback reads the clicking player from the audience, so the same action
-     * works on both the cached and the per-player dialog.
+     * callback reads the clicking player from the audience and the submitted input
+     * values from the view, so {@code {key}} tokens in the actions resolve to what
+     * the player entered. The same action works on both the cached and per-player dialog.
      */
-    private DialogAction buildAction(DialogButton b) {
+    private DialogAction buildAction(DialogButton b, List<DialogInputDef> inputs) {
         List<ButtonAction> buttonActions = b.actions();
         if (buttonActions.isEmpty()) {
             return null;
@@ -283,9 +406,21 @@ public final class DialogManager {
                 .build();
         return DialogAction.customClick((view, audience) -> {
             if (audience instanceof Player player) {
-                actions.run(player, buttonActions);
+                actions.run(player, buttonActions, readInputs(view, inputs));
             }
         }, options);
+    }
+
+    /** Reads every input's submitted value into a {@code key -> value} map for {@code {key}} substitution. */
+    private static Map<String, String> readInputs(DialogResponseView view, List<DialogInputDef> inputs) {
+        if (view == null || inputs.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> values = new HashMap<>();
+        for (DialogInputDef input : inputs) {
+            values.put(input.key(), input.stringValue(view));
+        }
+        return values;
     }
 
     @SuppressWarnings("unchecked")
@@ -362,6 +497,11 @@ public final class DialogManager {
         CustomDialog def = dialogs.get(id.toLowerCase());
         if (def == null) {
             return false;
+        }
+        // Conversations run as a stateful, per-player log built step by step.
+        if (def.kind() == DialogKind.CONVERSATION) {
+            conversations.start(player, def);
+            return true;
         }
         // Rebuild per-player when placeholders need resolving (and PAPI is present)
         // or buttons are permission-gated; otherwise show the cached dialog.

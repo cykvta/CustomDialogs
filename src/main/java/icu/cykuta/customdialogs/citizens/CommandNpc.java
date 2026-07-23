@@ -29,12 +29,12 @@ public final class CommandNpc extends BaseCommand {
 
         NPC npc = CitizensAPI.getDefaultNPCSelector().getSelected(player);
         if (npc == null) {
-            plugin.message(sender, "&cSelect an NPC first with &f/npc select&c.");
+            plugin.send(sender, "npc.select-first");
             return true;
         }
 
         if (args.length < 1) {
-            plugin.message(sender, "&cUsage: /customdialogs npc <id|remove>");
+            plugin.send(sender, "npc.usage");
             return true;
         }
 
@@ -42,24 +42,23 @@ public final class CommandNpc extends BaseCommand {
             if (npc.hasTrait(DialogTrait.class)) {
                 npc.removeTrait(DialogTrait.class);
             }
-            plugin.message(sender, "&aCleared the dialog binding on NPC &f" + npc.getName() + "&a.");
+            plugin.send(sender, "npc.cleared", "npc", npc.getName());
             return true;
         }
 
         String id = args[0];
         if (!plugin.dialogs().exists(id)) {
-            plugin.message(sender, "&cUnknown dialog: &f" + id);
+            plugin.send(sender, "npc.unknown-dialog", "id", id);
             return true;
         }
 
         npc.getOrAddTrait(DialogTrait.class).setDialogId(id);
-        plugin.message(sender, "&aNPC &f" + npc.getName()
-                + " &awill now open dialog &f" + id + "&a on right-click.");
+        plugin.send(sender, "npc.bound", "npc", npc.getName(), "id", id);
         return true;
     }
 
     @Override
     protected void onNoPermission(CommandSender sender) {
-        plugin.message(sender, "&cYou don't have permission to bind dialogs to NPCs.");
+        plugin.send(sender, "no-permission.npc");
     }
 }

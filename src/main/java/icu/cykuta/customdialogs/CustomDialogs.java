@@ -2,6 +2,7 @@ package icu.cykuta.customdialogs;
 
 import icu.cykuta.api.command.CommandRegistry;
 import icu.cykuta.api.config.ConfigManager;
+import icu.cykuta.api.update.UpdateChecker;
 import icu.cykuta.api.util.Text;
 import icu.cykuta.customdialogs.citizens.CitizensHook;
 import icu.cykuta.customdialogs.citizens.CommandNpc;
@@ -26,9 +27,10 @@ public final class CustomDialogs extends JavaPlugin {
         // --- Config (CykutaAPI) ---
         this.configManager = new ConfigManager(this);
         this.configManager.register("config.yml");
+        this.configManager.register("lang.yml");
 
         // --- Dialogs (loaded from the dialogs/ folder, one file per dialog) ---
-        this.dialogManager = new DialogManager(this);
+        this.dialogManager = new DialogManager(this, configManager);
         this.dialogManager.loadAll();
 
         // --- Commands (CykutaAPI) ---
@@ -42,6 +44,16 @@ public final class CustomDialogs extends JavaPlugin {
         }
 
         new CommandRegistry(this).register(root);
+
+        // --- Update check (CykutaAPI, GitHub releases; toggle via config) ---
+        boolean updateCheck = configManager.get("config.yml").getBoolean("update-check", true);
+        new UpdateChecker(this, "cykvta/CustomDialogs", updateCheck).check(result -> {
+            if (result.isOutdated()) {
+                getLogger().warning("A new version is available: " + result.latestVersion()
+                        + " (you're running " + result.currentVersion() + "). Download it at "
+                        + result.downloadUrl());
+            }
+        });
 
         getLogger().info("CustomDialogs enabled.");
     }
@@ -67,5 +79,27 @@ public final class CustomDialogs extends JavaPlugin {
     /** Sends a prefixed, color-processed message to a sender. */
     public void message(CommandSender sender, String message) {
         sender.sendMessage(prefix() + Text.color(message));
+    }
+
+    /**
+     * Looks up a raw message from {@code lang.yml} by its dotted key (under the
+     * {@code messages} root), returning the key itself if it is missing.
+     */
+    public String lang(String key) {
+        return configManager.get("lang.yml").getString("messages." + key, key);
+    }
+
+    /**
+     * Sends a prefixed message from {@code lang.yml}, replacing {@code {name}}
+     * placeholders with the given {@code name, value} pairs.
+     *
+     * <pre>send(sender, "open.self", "id", dialogId);</pre>
+     */
+    public void send(CommandSender sender, String key, String... replacements) {
+        String message = lang(key);
+        for (int i = 0; i + 1 < replacements.length; i += 2) {
+            message = message.replace("{" + replacements[i] + "}", replacements[i + 1]);
+        }
+        message(sender, message);
     }
 }

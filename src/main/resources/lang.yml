@@ -1,0 +1,54 @@
+# ===========================================================
+#  CustomDialogs - messages
+# ===========================================================
+# Every player-facing message the plugin sends lives here.
+# Supports & color codes and #rrggbb hex. The chat prefix is
+# configured separately in config.yml.
+#
+# {placeholders} in curly braces are filled in by the plugin
+# (e.g. {count}, {id}, {player}) - keep them as-is.
+
+messages:
+
+  # --- /customdialogs (help) ---
+  help:
+    header: "&7Commands:"
+    open: "&f/customdialogs open <id> [player] &7- open a dialog"
+    list: "&f/customdialogs list &7- list dialogs"
+    reload: "&f/customdialogs reload &7- reload configs"
+
+  # --- /customdialogs open ---
+  open:
+    usage: "&cUsage: /customdialogs open <id> [player]"
+    unknown-dialog: "&cUnknown dialog: &f{id}"
+    player-not-found: "&cPlayer not found: &f{player}"
+    console-needs-player: "&cFrom console you must specify a player: /customdialogs open {id} <player>"
+    self: "&aOpened dialog &f{id}&a."
+    other: "&aOpened dialog &f{id}&a for &f{player}&a."
+
+  # --- /customdialogs list ---
+  list:
+    empty: "&7No dialogs are loaded."
+    header: "&7Dialogs (&f{count}&7): &f{dialogs}"
+    separator: "&7, &f"
+
+  # --- /customdialogs reload ---
+  reload:
+    success: "&aReloaded &f{count}&a dialog(s)."
+    failed: "&cReload failed: {error}"
+
+  # --- /customdialogs npc (Citizens) ---
+  npc:
+    select-first: "&cSelect an NPC first with &f/npc select&c."
+    usage: "&cUsage: /customdialogs npc <id|remove>"
+    unknown-dialog: "&cUnknown dialog: &f{id}"
+    cleared: "&aCleared the dialog binding on NPC &f{npc}&a."
+    bound: "&aNPC &f{npc} &awill now open dialog &f{id}&a on right-click."
+
+  # --- Permission errors ---
+  no-permission:
+    command: "&cYou don't have permission to use this command."
+    open: "&cYou don't have permission to open dialogs."
+    list: "&cYou don't have permission to list dialogs."
+    reload: "&cYou don't have permission to reload CustomDialogs."
+    npc: "&cYou don't have permission to bind dialogs to NPCs."

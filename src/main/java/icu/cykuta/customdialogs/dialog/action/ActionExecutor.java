@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 
 /**
@@ -27,11 +28,19 @@ public final class ActionExecutor {
         this.dialogs = dialogs;
     }
 
-    /** Runs {@code actions} for {@code player}, in order. */
+    /** Runs {@code actions} for {@code player}, in order (no dialog input values). */
     public void run(Player player, List<ButtonAction> actions) {
+        run(player, actions, Map.of());
+    }
+
+    /**
+     * Runs {@code actions} for {@code player}, in order, substituting dialog input
+     * values ({@code {key}} tokens) from {@code inputs} into each action first.
+     */
+    public void run(Player player, List<ButtonAction> actions, Map<String, String> inputs) {
         for (ButtonAction action : actions) {
             try {
-                execute(player, action);
+                execute(player, action, inputs);
             } catch (Exception e) {
                 plugin.getLogger().log(Level.WARNING,
                         "Failed to run action [" + action.type() + "] for " + player.getName()
@@ -40,8 +49,8 @@ public final class ActionExecutor {
         }
     }
 
-    private void execute(Player player, ButtonAction action) {
-        String value = Placeholders.apply(player, action.value());
+    private void execute(Player player, ButtonAction action, Map<String, String> inputs) {
+        String value = Placeholders.apply(player, substituteInputs(action.value(), inputs));
         switch (action.type()) {
             case PLAYER -> player.performCommand(value);
             case CONSOLE -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), value);
@@ -51,6 +60,18 @@ public final class ActionExecutor {
             case CLOSE -> player.closeDialog();
             case OPEN -> openDialog(player, value);
         }
+    }
+
+    /** Replaces {@code {key}} tokens with the matching dialog input value. */
+    private static String substituteInputs(String value, Map<String, String> inputs) {
+        if (value == null || inputs.isEmpty() || value.indexOf('{') < 0) {
+            return value;
+        }
+        String out = value;
+        for (Map.Entry<String, String> entry : inputs.entrySet()) {
+            out = out.replace("{" + entry.getKey() + "}", entry.getValue() == null ? "" : entry.getValue());
+        }
+        return out;
     }
 
     /** Runs a command as the player with op granted only for that single command. */
